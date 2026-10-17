@@ -67,7 +67,7 @@ jobs:
       # Upload only tested ZIPs. This workflow never publishes a GitHub Release.
       # 테스트를 통과한 ZIP만 업로드하며 GitHub Release를 게시하지는 않습니다.
       - name: Upload release ZIP
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: fq4r-checksum-v${{ steps.version.outputs.version }}-windows-${{ matrix.architecture }}
           path: dist/fq4r-checksum-v${{ steps.version.outputs.version }}-windows-${{ matrix.architecture }}.zip
