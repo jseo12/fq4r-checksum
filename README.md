@@ -108,7 +108,7 @@ The version comes from `VERSION` (currently `0.1.0`). The outputs are `fq4r-chec
 
 The workflow `.github/workflows/build.yml` builds and tests x86 and x64 independently on Windows runners, then uploads the release ZIPs as workflow artifacts. It runs on pushes to `main`, pushes of `v*` tags, pull requests targeting `main`, and manual dispatch. A version tag must match `VERSION`.
 
-After committing and pushing the workflow, open **Actions → Build Windows binaries → Run workflow** to start a manual build. Open the completed run and download the packages under **Artifacts**. GitHub's artifact download wraps the release ZIP; extract the downloaded artifact to obtain the ZIP for distribution. Artifacts are retained for 14 days, subject to repository policy.
+After committing and pushing the workflow, open **Actions → Build Windows binaries → Run workflow** to start a manual build. Open the completed run and download the packages under **Artifacts**. The workflow uses `upload-artifact@v7` with `archive: false`, so each artifact is the release ZIP itself, without an additional ZIP wrapper. Download each architecture's artifact separately and attach that ZIP directly to a GitHub Release. Artifacts are retained for 14 days, subject to repository policy.
 
 This workflow uploads build artifacts only; it does not create or publish a GitHub Release. A workflow must exist in the selected commit to run, so the existing `v0.1.0` tag pointing to the initial commit will not gain this workflow retroactively.
 

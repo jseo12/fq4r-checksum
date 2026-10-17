@@ -108,7 +108,7 @@ Remove-Item Env:FQ4R_CHECK_EXE
 
 `.github/workflows/build.yml`은 Windows 실행 환경에서 x86·x64를 각각 빌드·테스트하고 배포 ZIP을 workflow artifact로 업로드합니다. `main` 푸시, `v*` 태그 푸시, `main` 대상 풀 리퀘스트와 수동 실행을 지원합니다. 버전 태그는 `VERSION`과 일치해야 합니다.
 
-workflow를 커밋·푸시한 뒤 **Actions → Build Windows binaries → Run workflow**로 수동 빌드를 시작할 수 있습니다. 완료된 실행 화면의 **Artifacts**에서 결과를 다운로드합니다. GitHub가 artifact 다운로드를 ZIP으로 감싸므로, 내려받은 파일을 풀면 실제 배포용 ZIP이 나옵니다. 보관 기간은 저장소 정책 범위 내에서 14일입니다.
+workflow를 커밋·푸시한 뒤 **Actions → Build Windows binaries → Run workflow**로 수동 빌드를 시작할 수 있습니다. 완료된 실행 화면의 **Artifacts**에서 결과를 다운로드합니다. `upload-artifact@v7`의 `archive: false`를 사용하므로 추가 ZIP 포장 없이 배포용 ZIP 자체가 artifact가 됩니다. 아키텍처별 artifact를 개별 다운로드하면 해당 ZIP을 GitHub Release에 바로 첨부할 수 있습니다. 보관 기간은 저장소 정책 범위 내에서 14일입니다.
 
 이 workflow는 빌드 결과만 업로드하며 GitHub Release를 만들거나 게시하지 않습니다. 선택한 커밋에 workflow가 있어야 실행되므로, 최초 커밋을 가리키는 기존 `v0.1.0` 태그에 새 workflow가 소급 적용되지는 않습니다.
 

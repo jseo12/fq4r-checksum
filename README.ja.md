@@ -108,7 +108,7 @@ Remove-Item Env:FQ4R_CHECK_EXE
 
 `.github/workflows/build.yml` はWindowsランナーでx86・x64を個別にビルド・テストし、配布ZIPをワークフローのアーティファクトとしてアップロードします。`main` へのプッシュ、`v*` タグのプッシュ、`main` 向けプルリクエスト、手動実行に対応します。バージョンタグは `VERSION` と一致する必要があります。
 
-ワークフローをコミット・プッシュした後、**Actions → Build Windows binaries → Run workflow** から手動実行できます。完了した実行の **Artifacts** からダウンロードしてください。GitHubはアーティファクトをZIPで包むため、ダウンロードしたファイルを展開すると実際の配布ZIPが得られます。保存期間はリポジトリのポリシーの範囲内で14日です。
+ワークフローをコミット・プッシュした後、**Actions → Build Windows binaries → Run workflow** から手動実行できます。完了した実行の **Artifacts** からダウンロードしてください。`upload-artifact@v7` の `archive: false` を使用するため、追加のZIP包装なしで配布ZIP自体がアーティファクトになります。各アーキテクチャのアーティファクトを個別にダウンロードし、そのZIPをGitHub Releaseへ直接添付できます。保存期間はリポジトリのポリシーの範囲内で14日です。
 
 このワークフローはビルド成果物のみをアップロードし、GitHub Releaseを作成・公開しません。選択したコミットにワークフローが必要なため、最初のコミットを指す既存の `v0.1.0` タグには遡って適用されません。
 
