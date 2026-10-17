@@ -4,7 +4,7 @@
 
 퍼스트 퀸 4 리메이크 Windows판의 세이브 파일 체크섬을 검사하고 수정하는 도구입니다. 이 프로젝트에서는 해당 게임을 **FQ4R**로 부릅니다. 공식 일본어 제품명은 「ファーストクイーンⅣ」입니다. [공식 사이트](http://kure.sakura.ne.jp/fq4/)
 
-저장소 이름은 `fq4r-checksum`, 실행 파일은 `fq4r-checksum.exe`입니다. Windows x64용 C 프로그램으로, Windows 기본 DLL과 정적으로 링크한 C 런타임을 사용합니다. 브라우저 엔진, Node.js, Python 또는 별도 VC 런타임 설치 없이 실행합니다. Python은 테스트할 때만 필요합니다.
+저장소 이름은 `fq4r-checksum`, 실행 파일은 `fq4r-checksum.exe`입니다. Windows x86·x64용 C 프로그램으로, Windows 기본 DLL과 정적으로 링크한 C 런타임을 사용합니다. 브라우저 엔진, Node.js, Python 또는 별도 VC 런타임 설치 없이 실행합니다. Python은 테스트할 때만 필요합니다.
 
 ## 사용법
 
@@ -69,9 +69,48 @@ Visual Studio의 C++ 데스크톱 빌드 도구와 Windows SDK가 필요합니�
 python .\test_cli.py
 ```
 
-`build.cmd`는 현재 MSVC를 사용하거나 `vswhere`로 설치를 찾아 x64 환경을 설정합니다. 크기 최적화, 정적 CRT와 경고 오류 처리를 적용합니다. 일반 MSVC 환경을 직접 설정한다면 x64 Native Tools 명령 프롬프트를 사용하십시오.
+`build.cmd`는 현재 Visual Studio 설치 또는 `vswhere`로 찾은 설치를 사용하여 요청한 대상 환경을 설정합니다. 크기 최적화, 정적 CRT와 경고 오류 처리를 적용합니다. 일반 MSVC 환경을 직접 설정한다면 x64 Native Tools 명령 프롬프트를 사용하십시오.
 
 테스트는 합성 세이브와 독립적인 Python XOR 구현을 사용하므로 게임 파일 없이 실행할 수 있습니다. 모든 블록 변조, 체크섬 영역 변조, 백업 보존, 반복 수정, 잘못된 형식, 이름 필터, Unicode·긴 경로, 읽기 전용 파일과 세 언어를 검증합니다. 수정 테스트는 임시 복사본만 사용합니다. 기존 분석 작업 공간의 원본 세이브 검사는 해당 파일이 없으면 건너뜁니다.
+
+## 아키텍처별 빌드
+
+```powershell
+.\build.cmd x64
+.\build.cmd x86
+
+# x86 실행 파일로 통합 테스트
+$env:FQ4R_CHECK_EXE = "$PWD\bin\x86\fq4r-checksum.exe"
+python .\test_cli.py
+Remove-Item Env:FQ4R_CHECK_EXE
+```
+
+- x64: `bin/fq4r-checksum.exe`. 인자 없이 빌드할 때도 기본값입니다.
+- x86: `bin/x86/fq4r-checksum.exe`. 32비트 Windows 사용자용입니다.
+
+요청한 아키텍처를 명시적으로 선택하고 산출물을 분리합니다. 동일한 C 소스와 배포용 설정을 사용합니다. x86 실행 파일은 현재 64비트 Windows 환경에서 검증했으며, 실제 32비트 Windows 설치 환경에서는 아직 검증하지 않았습니다. 구형 Windows 버전의 호환성을 보장한다는 뜻은 아닙니다.
+
+## 릴리스 패키지
+
+빌드 성공 시 `dist/`에 배포용 ZIP을 자동 생성합니다.
+
+```powershell
+.\build.cmd       # x64 빌드와 ZIP 생성
+.\build.cmd x86   # x86 빌드와 ZIP 생성
+.\build.cmd all   # 두 아키텍처 빌드와 ZIP 생성
+```
+
+버전은 `VERSION` 파일에서 읽습니다(현재 `0.1.0`). 결과는 `fq4r-checksum-v0.1.0-windows-x64.zip`, `fq4r-checksum-v0.1.0-windows-x86.zip`입니다. 각 ZIP 최상위에는 `fq4r-checksum.exe`, `LICENSE`, `README.md`, `README.ko.md`, `README.ja.md`의 5개 파일만 포함합니다. 샘플과 중간 산출물은 제외합니다. 다시 빌드하면 새 ZIP이 완성된 후 같은 버전·아키텍처의 이전 패키지를 교체합니다.
+
+`package.ps1`은 Windows PowerShell과 .NET을 사용하므로 별도 압축 프로그램이 필요 없습니다. EXE의 PE 아키텍처와 필수 파일을 확인하며, 패키징 실패도 빌드 명령 실패로 처리합니다. 기존 EXE를 다시 패키징하려면 `powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\package.ps1 -Architecture x64`를 실행합니다(`x86`도 가능). ZIP은 Git에서 제외되며 GitHub Release 첨부 파일로 업로드할 수 있습니다. 태그 생성·커밋·푸시·릴리스 게시를 자동 수행하지는 않습니다.
+
+## GitHub Actions 빌드
+
+`.github/workflows/build.yml`은 Windows 실행 환경에서 x86·x64를 각각 빌드·테스트하고 배포 ZIP을 workflow artifact로 업로드합니다. `main` 푸시, `v*` 태그 푸시, `main` 대상 풀 리퀘스트와 수동 실행을 지원합니다. 버전 태그는 `VERSION`과 일치해야 합니다.
+
+workflow를 커밋·푸시한 뒤 **Actions → Build Windows binaries → Run workflow**로 수동 빌드를 시작할 수 있습니다. 완료된 실행 화면의 **Artifacts**에서 결과를 다운로드합니다. GitHub가 artifact 다운로드를 ZIP으로 감싸므로, 내려받은 파일을 풀면 실제 배포용 ZIP이 나옵니다. 보관 기간은 저장소 정책 범위 내에서 14일입니다.
+
+이 workflow는 빌드 결과만 업로드하며 GitHub Release를 만들거나 게시하지 않습니다. 선택한 커밋에 workflow가 있어야 실행되므로, 최초 커밋을 가리키는 기존 `v0.1.0` 태그에 새 workflow가 소급 적용되지는 않습니다.
 
 ## 구조와 API 문서
 

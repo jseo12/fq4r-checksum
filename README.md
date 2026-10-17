@@ -4,7 +4,7 @@
 
 A tool for checking and repairing save-file checksums for the Windows remake of First Queen IV, referred to as **FQ4R** in this project. The official Japanese title is 「ファーストクイーンⅣ」. [Official website](http://kure.sakura.ne.jp/fq4/)
 
-Repository name: `fq4r-checksum`. Executable: `fq4r-checksum.exe`. Written in C for Windows x64, using Windows system DLLs and a statically linked C runtime. No browser engine, Node.js, Python, or separate VC runtime installation is required to run it. Python is needed only for tests.
+Repository name: `fq4r-checksum`. Executable: `fq4r-checksum.exe`. Written in C for Windows x86 and x64, using Windows system DLLs and a statically linked C runtime. No browser engine, Node.js, Python, or separate VC runtime installation is required to run it. Python is needed only for tests.
 
 ## Usage
 
@@ -69,9 +69,48 @@ Install Visual Studio C++ desktop build tools and the Windows SDK.
 python .\test_cli.py
 ```
 
-The script uses the active MSVC compiler or discovers an installation through `vswhere` and initializes its x64 environment. It enables size optimization, static CRT linking, and warnings as errors. Use an x64 Native Tools prompt when configuring MSVC manually.
+The script uses the current Visual Studio installation or discovers one through `vswhere`, then initializes the requested target environment. It enables size optimization, static CRT linking, and warnings as errors. Use an x64 Native Tools prompt when configuring MSVC manually.
 
 Tests use synthetic saves and an independent Python XOR implementation, so no game files are required. Coverage includes corruption in all blocks and the checksum area, backup preservation, repeat repairs, invalid formats, filename filtering, Unicode and long paths, read-only files, and all three languages. Repair tests modify temporary copies only. The optional original-save check runs in the original analysis workspace and is skipped when those files are absent.
+
+## Architecture-specific builds
+
+```powershell
+.\build.cmd x64
+.\build.cmd x86
+
+# Run the integration tests against the x86 binary
+$env:FQ4R_CHECK_EXE = "$PWD\bin\x86\fq4r-checksum.exe"
+python .\test_cli.py
+Remove-Item Env:FQ4R_CHECK_EXE
+```
+
+- x64: `bin/fq4r-checksum.exe` (also the default when no argument is given).
+- x86: `bin/x86/fq4r-checksum.exe` for 32-bit Windows users.
+
+The build script explicitly selects the target architecture and keeps the outputs separate. Both use the same C source and release settings. The x86 executable has been tested on the current 64-bit Windows environment; execution on an actual 32-bit Windows installation has not been verified. This does not establish compatibility with older Windows versions.
+
+## Release packages
+
+Every successful build automatically creates a release ZIP in `dist/`:
+
+```powershell
+.\build.cmd       # x64 build and ZIP
+.\build.cmd x86   # x86 build and ZIP
+.\build.cmd all   # both architectures and ZIPs
+```
+
+The version comes from `VERSION` (currently `0.1.0`). The outputs are `fq4r-checksum-v0.1.0-windows-x64.zip` and `fq4r-checksum-v0.1.0-windows-x86.zip`. Each contains exactly `fq4r-checksum.exe`, `LICENSE`, `README.md`, `README.ko.md`, and `README.ja.md` at the archive root. Samples and intermediate files are excluded. Building again replaces the package for the same version/architecture only after the new ZIP is complete.
+
+`package.ps1` uses Windows PowerShell and .NET, with no extra archiver required. It checks the PE architecture and required files; packaging failure makes the build command fail. To package an existing binary again, run `powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\package.ps1 -Architecture x64` (or `x86`). Packages remain ignored by Git and can be uploaded as GitHub Release assets. This does not create tags, commit, push, or publish releases.
+
+## GitHub Actions builds
+
+The workflow `.github/workflows/build.yml` builds and tests x86 and x64 independently on Windows runners, then uploads the release ZIPs as workflow artifacts. It runs on pushes to `main`, pushes of `v*` tags, pull requests targeting `main`, and manual dispatch. A version tag must match `VERSION`.
+
+After committing and pushing the workflow, open **Actions → Build Windows binaries → Run workflow** to start a manual build. Open the completed run and download the packages under **Artifacts**. GitHub's artifact download wraps the release ZIP; extract the downloaded artifact to obtain the ZIP for distribution. Artifacts are retained for 14 days, subject to repository policy.
+
+This workflow uploads build artifacts only; it does not create or publish a GitHub Release. A workflow must exist in the selected commit to run, so the existing `v0.1.0` tag pointing to the initial commit will not gain this workflow retroactively.
 
 ## Structure and API documentation
 

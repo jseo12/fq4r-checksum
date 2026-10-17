@@ -1,0 +1,76 @@
+name: Build Windows binaries
+
+# Build commits and pull requests, or start a build from the Actions page.
+# 커밋·풀 리퀘스트에 대해 빌드하거나 Actions 페이지에서 수동 실행합니다.
+on:
+  push:
+    branches: [main]
+    tags: ['v*']
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Windows ${{ matrix.architecture }}
+    runs-on: windows-2022
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - architecture: x64
+            executable: bin/fq4r-checksum.exe
+          - architecture: x86
+            executable: bin/x86/fq4r-checksum.exe
+
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: '3.13'
+
+      # A version tag must describe the same version as the generated packages.
+      # 버전 태그와 생성 패키지의 버전이 일치해야 합니다.
+      - name: Validate version
+        id: version
+        shell: pwsh
+        run: |
+          $version = (Get-Content -LiteralPath VERSION -Raw).Trim()
+          if ($version -notmatch '^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$') {
+            throw 'Invalid VERSION file.'
+          }
+          if ($env:GITHUB_REF_TYPE -eq 'tag' -and $env:GITHUB_REF_NAME -ne "v$version") {
+            throw "Tag $env:GITHUB_REF_NAME does not match VERSION ($version)."
+          }
+          "version=$version" >> $env:GITHUB_OUTPUT
+
+      - name: Build and package
+        shell: cmd
+        run: call build.cmd ${{ matrix.architecture }}
+
+      - name: Run integration tests
+        shell: pwsh
+        env:
+          FQ4R_CHECK_EXE: ${{ matrix.executable }}
+          PYTHONIOENCODING: utf-8
+        run: python test_cli.py
+
+      # Upload only tested ZIPs. This workflow never publishes a GitHub Release.
+      # 테스트를 통과한 ZIP만 업로드하며 GitHub Release를 게시하지는 않습니다.
+      - name: Upload release ZIP
+        uses: actions/upload-artifact@v4
+        with:
+          name: fq4r-checksum-v${{ steps.version.outputs.version }}-windows-${{ matrix.architecture }}
+          path: dist/fq4r-checksum-v${{ steps.version.outputs.version }}-windows-${{ matrix.architecture }}.zip
+          if-no-files-found: error
+          compression-level: 0
+          retention-days: 14

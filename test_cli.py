@@ -1,6 +1,7 @@
 """CLI integration tests modify temporary copies only; original saves are read-only.
 임시 복사본만 수정하는 CLI 통합 테스트입니다. 원본 세이브는 읽기 전용입니다.
 """
+import os
 import subprocess
 import tempfile
 import unittest
@@ -9,7 +10,9 @@ from pathlib import Path
 # Compare C results against a small, independent Python XOR implementation.
 # 독립적인 Python XOR 구현과 C 결과를 비교합니다.
 ROOT = Path(__file__).resolve().parents[2]
-EXE = Path(__file__).parent / 'bin' / 'fq4r-checksum.exe'
+# Allow the same integration suite to exercise either architecture.
+# 동일한 통합 테스트로 어느 아키텍처든 검사할 수 있도록 합니다.
+EXE = Path(os.environ.get('FQ4R_CHECK_EXE', str(Path(__file__).parent / 'bin' / 'fq4r-checksum.exe'))).resolve()
 
 
 class Reference:
@@ -45,8 +48,8 @@ class CliTests(unittest.TestCase):
         return subprocess.run([str(EXE), '--lang', 'en', *map(str, args)], capture_output=True,
                               encoding='utf-8', errors='strict')
 
-    # Check actual saves successfully and verify that original bytes remain unchanged.
-    # 실제 세이브의 검사 성공과 원본 바이트 보존을 확인합니다.
+    # Compare actual-save results with the reference, including pre-existing corruption.
+    # 이미 존재하는 불일치도 포함하여 실제 세이브 결과를 기준 구현과 비교합니다.
     def test_originals_read_only(self):
         paths = sorted(ROOT.glob('save[0-9][0-9].dat'))
         if not paths:
@@ -55,8 +58,12 @@ class CliTests(unittest.TestCase):
             with self.subTest(path=path.name):
                 original = path.read_bytes()
                 result = self.run_cli(path)
-                self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
-                self.assertIn('VALID: 8/8', result.stdout)
+                expected = ref.repair_checksums(original)
+                bad = sum(original[i] != expected[i] for i in range(0x7DA6, 0x7DAE))
+                self.assertEqual(result.returncode, 1 if bad else 0, result.stdout + result.stderr)
+                self.assertEqual(result.stdout.count('MISMATCH'), bad)
+                if not bad:
+                    self.assertIn('VALID: 8/8', result.stdout)
                 self.assertEqual(original, path.read_bytes())
 
     # Cover corruption in every block and the checksum area, repeat repair, and backup preservation.

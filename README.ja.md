@@ -4,7 +4,7 @@
 
 ファーストクイーンⅣ Windows版のセーブデータのチェックサムを検証・修正するツールです。本プロジェクトでは、このWindows版を **FQ4R** と表記します。公式の日本語製品名は「ファーストクイーンⅣ」です。[公式サイト](http://kure.sakura.ne.jp/fq4/)
 
-リポジトリ名は `fq4r-checksum`、実行ファイル名は `fq4r-checksum.exe` です。Windows x64向けのCプログラムで、Windows標準DLLと静的リンクしたCランタイムを使用します。ブラウザーエンジン、Node.js、Python、別途VCランタイムのインストールは実行に不要です。Pythonはテスト時のみ使用します。
+リポジトリ名は `fq4r-checksum`、実行ファイル名は `fq4r-checksum.exe` です。Windows x86・x64向けのCプログラムで、Windows標準DLLと静的リンクしたCランタイムを使用します。ブラウザーエンジン、Node.js、Python、別途VCランタイムのインストールは実行に不要です。Pythonはテスト時のみ使用します。
 
 ## 使い方
 
@@ -69,9 +69,48 @@ Visual StudioのC++デスクトップビルドツールとWindows SDKが必要�
 python .\test_cli.py
 ```
 
-現在のMSVCを使用するか、`vswhere` でインストール先を検索してx64環境を初期化します。サイズ最適化、CRTの静的リンク、警告のエラー化を有効にします。MSVCを手動設定する場合はx64 Native Toolsプロンプトを使用してください。
+現在のVisual Studioまたは `vswhere` で検索したインストール先を使用して、指定した対象環境を初期化します。サイズ最適化、CRTの静的リンク、警告のエラー化を有効にします。MSVCを手動設定する場合はx64 Native Toolsプロンプトを使用してください。
 
 テストは合成セーブデータと独立したPython XOR実装を使用するため、ゲームファイルなしで実行できます。全領域とチェックサム保存領域の改変、バックアップ保持、繰り返し修正、不正な形式、名前フィルター、Unicode・長いパス、読み取り専用ファイル、3言語を検証します。修正テストは一時コピーのみを変更します。元の分析用ワークスペースに実セーブがある場合の追加検査は、ファイルがなければスキップします。
+
+## アーキテクチャ別のビルド
+
+```powershell
+.\build.cmd x64
+.\build.cmd x86
+
+# x86実行ファイルで統合テスト
+$env:FQ4R_CHECK_EXE = "$PWD\bin\x86\fq4r-checksum.exe"
+python .\test_cli.py
+Remove-Item Env:FQ4R_CHECK_EXE
+```
+
+- x64：`bin/fq4r-checksum.exe`。引数なしの場合も既定です。
+- x86：`bin/x86/fq4r-checksum.exe`。32ビットWindowsユーザー向けです。
+
+対象アーキテクチャを明示的に選択し、成果物を分離します。共通のCソースとリリース設定を使用します。x86実行ファイルは現在の64ビットWindows環境で検証しており、実際の32ビットWindows環境では未検証です。古いWindowsバージョンとの互換性を保証するものではありません。
+
+## リリースパッケージ
+
+ビルド成功時に `dist/` へ配布用ZIPを自動生成します。
+
+```powershell
+.\build.cmd       # x64のビルドとZIP生成
+.\build.cmd x86   # x86のビルドとZIP生成
+.\build.cmd all   # 両アーキテクチャのビルドとZIP生成
+```
+
+バージョンは `VERSION` から読み取ります（現在 `0.1.0`）。出力名は `fq4r-checksum-v0.1.0-windows-x64.zip` と `fq4r-checksum-v0.1.0-windows-x86.zip` です。各ZIPの最上位には `fq4r-checksum.exe`、`LICENSE`、`README.md`、`README.ko.md`、`README.ja.md` の5ファイルのみを含めます。サンプルと中間成果物は除外します。再ビルド時は、新しいZIPの完成後に同じバージョン・アーキテクチャのパッケージを置き換えます。
+
+`package.ps1` はWindows PowerShellと.NETを使用し、追加の圧縮ソフトは不要です。PEアーキテクチャと必須ファイルを確認し、パッケージ作成の失敗もビルドコマンドの失敗として扱います。既存のEXEを再パッケージするには `powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\package.ps1 -Architecture x64` を実行します（`x86` も指定可能）。ZIPはGitの対象外で、GitHub Releaseの添付ファイルとしてアップロードできます。タグ作成・コミット・プッシュ・リリース公開は自動実行しません。
+
+## GitHub Actionsによるビルド
+
+`.github/workflows/build.yml` はWindowsランナーでx86・x64を個別にビルド・テストし、配布ZIPをワークフローのアーティファクトとしてアップロードします。`main` へのプッシュ、`v*` タグのプッシュ、`main` 向けプルリクエスト、手動実行に対応します。バージョンタグは `VERSION` と一致する必要があります。
+
+ワークフローをコミット・プッシュした後、**Actions → Build Windows binaries → Run workflow** から手動実行できます。完了した実行の **Artifacts** からダウンロードしてください。GitHubはアーティファクトをZIPで包むため、ダウンロードしたファイルを展開すると実際の配布ZIPが得られます。保存期間はリポジトリのポリシーの範囲内で14日です。
+
+このワークフローはビルド成果物のみをアップロードし、GitHub Releaseを作成・公開しません。選択したコミットにワークフローが必要なため、最初のコミットを指す既存の `v0.1.0` タグには遡って適用されません。
 
 ## 構成とAPIドキュメント
 
