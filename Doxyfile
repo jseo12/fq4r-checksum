@@ -1,0 +1,16 @@
+# Generate API documentation from the bilingual C comments.
+# 두 언어로 작성한 C 주석에서 API 문서를 생성합니다.
+PROJECT_NAME           = "FQ4R Save Checksum CLI Tool"
+OUTPUT_DIRECTORY       = docs/generated
+INPUT                  = fq4r_checksum.h fq4r_checksum.c main.c i18n.h
+INPUT_ENCODING         = UTF-8
+FILE_PATTERNS          = *.c *.h
+RECURSIVE              = NO
+EXTRACT_ALL            = NO
+EXTRACT_STATIC         = YES
+JAVADOC_AUTOBRIEF      = NO
+WARN_IF_UNDOCUMENTED   = NO
+WARN_IF_DOC_ERROR      = YES
+GENERATE_HTML          = YES
+GENERATE_LATEX         = NO
+HAVE_DOT               = NO

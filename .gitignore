@@ -1,0 +1,50 @@
+# Build outputs and release archives
+# 빌드 결과와 배포 압축 파일
+/bin/
+/build/
+/dist/
+
+# Keep local sample saves and their metadata out of the repository.
+# 로컬 샘플 세이브와 관련 메타데이터를 저장소에서 제외합니다.
+/samples/
+*.obj
+*.o
+*.exe
+*.dll
+*.lib
+*.exp
+*.pdb
+*.ilk
+*.idb
+*.pch
+*.res
+*.zip
+
+# Generated documentation and test caches
+# 생성 문서와 테스트 캐시
+/docs/generated/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Local IDE and operating-system files
+# 로컬 IDE와 운영체제 파일
+.vs/
+.vscode/
+.idea/
+*.user
+*.suo
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# Local game saves, backups, and interrupted repair/test files
+# 로컬 게임 세이브, 백업과 중단된 수정·테스트 파일
+*.dat
+*.DAT
+*.bak
+*.bak.*
+*.tmp
+/tmp*/
